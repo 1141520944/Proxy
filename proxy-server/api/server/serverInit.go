@@ -9,6 +9,9 @@ import (
 
 	"github.com/1141520944/proxy/common/models"
 	validateG "github.com/1141520944/proxy/common/validate"
+	"github.com/1141520944/proxy/dao/mysql"
+	"github.com/1141520944/proxy/pkg/snowflake"
+	"github.com/1141520944/proxy/repo"
 	"github.com/1141520944/proxy/util"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -16,10 +19,22 @@ import (
 	"go.uber.org/zap"
 )
 
+type ServerHandler struct {
+	mysql repo.Server_mysql
+}
+
+func New_handler() *ServerHandler {
+	return &ServerHandler{
+		mysql: mysql.New(),
+	}
+}
+
 // 启动一个server
-func ServerInit(c *gin.Context) {
+func (sh *ServerHandler) ServerInit(c *gin.Context) {
 	serverDie := make(chan struct{})
-	ConnDie := make(chan struct{})
+	ClienDie := make(chan struct{})
+	goroutineDie := make(chan struct{})
+	serverCreate := make(chan struct{})
 	//post 请求
 	sr := new(models.ServerRequest)
 	result := new(models.ResultData)
@@ -34,39 +49,69 @@ func ServerInit(c *gin.Context) {
 			return
 		}
 	}
+	go func() {
+		//服务创建
+		select {
+		case <-serverCreate:
+			//创建server
+			server := &models.Table_Server{
+				ServerID:         snowflake.GenID(),
+				ServerName:       sr.ServerName,
+				ServerPassword:   sr.Password,
+				ShowPort:         sr.ShowPort,
+				ConnectPort:      sr.ConnectPort,
+				LocalProjectPort: sr.LocalProjectPort,
+				ServerState:      true,
+			}
+			if err := sh.mysql.Server_InsertOne(server); err != nil {
+				zap.L().Error("sh.mysql.Server_InsertOne() with fail", zap.Error(err))
+			}
+		case <-time.After(time.Second * 10):
+			result.ResponseErrorWithMsg(c, models.CodeServerBusy, "连接失败")
+		}
+	}()
 	//http连接
 	chSession := make(chan net.Conn, 100)
 	// go listenC(sr.ServerPort, chSession, onClientConnect, sr, ConnDie)
-	// go listen(sr.UserPort, chSession, onUserConnect, sr, ConnDie)
-	if nil != listenC(sr.ServerPort, chSession, onClientConnect, sr, ConnDie, serverDie) {
+	// go listenG(sr.ShowPort, chSession, onUserConnect, sr, ClienDie, goroutineDie)
+	if nil != listenC(sr.ConnectPort, chSession, onClientConnect, sr, ClienDie, serverDie, goroutineDie, serverCreate) {
 		return
 	}
-	if nil != listen(sr.UserPort, chSession, onUserConnect, sr, ConnDie) {
+	if nil != listenG(sr.ShowPort, chSession, onUserConnect, sr, ClienDie, goroutineDie) {
 		return
 	}
 	select {
 	case <-serverDie:
-		result.ResponseSuccess(c, "连接结束")
+		//删除数据库
+		if err := sh.mysql.Server_DeleteByIDShowPort(sr.ShowPort); err != nil {
+			zap.L().Error("sh.mysql.Server_DeleteByIDShowPort() with fail", zap.Error(err))
+		}
+		// result.ResponseSuccess(c, "连接结束")
 	case <-time.After(time.Hour * 3):
 	}
 }
 
-// 连接的方法
-type OnConnectFunc func(net.Conn, chan net.Conn, *models.ServerRequest, chan struct{}, net.Listener)
+// 执行Handler的方法
+type OnConnectFunc func(net.Conn, chan net.Conn, *models.ServerRequest, chan struct{})
 
 // 监测是否有客户端连接
-func listenC(port string, chSession chan net.Conn, onConnect OnConnectFunc, re *models.ServerRequest, ConnDie chan struct{}, serverDie chan struct{}) error {
+func listenC(port string, chSession chan net.Conn, onConnect OnConnectFunc, re *models.ServerRequest, ClienDie chan struct{}, serverDie chan struct{}, goroutineDie chan struct{}, serverCreate chan struct{}) error {
 	l, err := net.Listen("tcp", net.JoinHostPort("0.0.0.0", port))
 	if err != nil {
 		zap.L().Error("CAN'T LISTEN: ", zap.Error(err))
 		return err
 	}
 	zap.L().Info(fmt.Sprintf("listen port:%s", port))
+	serverCreate <- struct{}{}
 	go func() {
+		defer l.Close()
 		go func() {
 			select {
-			case <-ConnDie:
+			case <-ClienDie:
 				l.Close()
+				zap.L().Error(fmt.Sprintf("l.Close(): %s", port), zap.Error(err))
+				goroutineDie <- struct{}{}
+				time.Sleep(time.Second)
 				serverDie <- struct{}{}
 			case <-time.After(time.Hour * 3):
 			}
@@ -77,12 +122,12 @@ func listenC(port string, chSession chan net.Conn, onConnect OnConnectFunc, re *
 				zap.L().Info("Can't Accept: -listener 断开", zap.Error(err))
 				break
 			}
-			go onConnect(conn, chSession, re, ConnDie, l)
+			go onConnect(conn, chSession, re, ClienDie)
 		}
 	}()
 	return nil
 }
-func listen(port string, chSession chan net.Conn, onConnect OnConnectFunc, re *models.ServerRequest, ConnDie chan struct{}) error {
+func listenG(port string, chSession chan net.Conn, onConnect OnConnectFunc, re *models.ServerRequest, ClienDie chan struct{}, goroutineDie chan struct{}) error {
 	l, err := net.Listen("tcp", net.JoinHostPort("0.0.0.0", port))
 	if err != nil {
 		zap.L().Error("CAN'T LISTEN: ", zap.Error(err))
@@ -90,24 +135,28 @@ func listen(port string, chSession chan net.Conn, onConnect OnConnectFunc, re *m
 	}
 	zap.L().Info(fmt.Sprintf("listen port:%s", port))
 	go func() {
-		defer l.Close()
+		go func() {
+			select {
+			case <-goroutineDie:
+				l.Close()
+				zap.L().Error(fmt.Sprintf("l.Close(): %s", port), zap.Error(err))
+			case <-time.After(time.Hour * 3):
+			}
+		}()
 		for {
 			conn, err := l.Accept()
 			if err != nil {
-				zap.L().Error("Can't Accept: ", zap.Error(err))
+				zap.L().Error("Can't Accept: %s", zap.Error(err))
 				break
 			}
-			go onConnect(conn, chSession, re, ConnDie, l)
+			go onConnect(conn, chSession, re, ClienDie)
 		}
 	}()
 	return nil
 }
 
 // 客户端listern创建监听链接后执行的操作
-func onClientConnect(conn net.Conn, chSession chan net.Conn, re *models.ServerRequest, ConnDie chan struct{}, l net.Listener) {
-	defer func() {
-		ConnDie <- struct{}{}
-	}()
+func onClientConnect(conn net.Conn, chSession chan net.Conn, re *models.ServerRequest, ClienDie chan struct{}) {
 	strConn := util.Conn2Str(conn)
 	zap.L().Info(fmt.Sprintf("Proxy Client Connect:%s", strConn))
 	//设置read的截至时间
@@ -134,7 +183,7 @@ func onClientConnect(conn net.Conn, chSession chan net.Conn, re *models.ServerRe
 	log.Println("token=", token)
 	if token == util.C2P_CONNECT {
 		//内网服务器启动时连接代理，建立长连接
-		clientConnect(conn, re)
+		clientConnect(conn, re, ClienDie)
 		return
 	} else if token == util.C2P_SESSION {
 		//为客户端的单次连接请求建立一个临时的"内网服务器<->代理"的连接
@@ -148,8 +197,9 @@ func onClientConnect(conn net.Conn, chSession chan net.Conn, re *models.ServerRe
 var _clientProxy net.Conn = nil
 
 // 处理golocproxy client的连接
-func clientConnect(conn net.Conn, re *models.ServerRequest) {
+func clientConnect(conn net.Conn, re *models.ServerRequest, ConnDie chan struct{}) {
 	defer func() {
+		ConnDie <- struct{}{}
 		_clientProxy = nil
 		util.CloseConn(conn)
 	}()
@@ -164,10 +214,7 @@ func clientConnect(conn net.Conn, re *models.ServerRequest) {
 	for {
 		_, err := util.ReadString(_clientProxy)
 		if err != nil {
-			zap.L().Info("UNREG SERVICE")
-			//client连接结束
-			// re.Exist = false
-			// re.Die <- "a"
+			zap.L().Info("UNREG SERVICE---C")
 			break
 		}
 	}
@@ -178,8 +225,7 @@ func initUserSession(conn net.Conn, chSession chan net.Conn) {
 }
 
 // 处理最终用户的连接
-func onUserConnect(conn net.Conn, chSession chan net.Conn, re *models.ServerRequest, ConnDie chan struct{}, l net.Listener) {
-	// defer util.CloseConn(conn)
+func onUserConnect(conn net.Conn, chSession chan net.Conn, re *models.ServerRequest, ConnDie chan struct{}) {
 	if _clientProxy == nil {
 		conn.Write([]byte("NO SERVICE"))
 		util.CloseConn(conn)

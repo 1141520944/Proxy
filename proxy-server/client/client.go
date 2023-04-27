@@ -23,12 +23,22 @@ func main() {
 	flag.Parse()
 
 	log.Println("golocproxy client starting: ", *local, "->", *remote)
-	for {
-		connectServer()
-		time.Sleep(10 * time.Second) //retry after 10s
-	}
+
+	go func() {
+		for {
+			connectServer()
+			time.Sleep(time.Second * 3)
+		}
+	}()
+
+	connectServer()
+
+	// select {
+	// case <-time.After(time.Second * 10):
+	// }
 }
 
+// 远程连接服务器
 func connectServer() {
 	proxy, err := net.DialTimeout("tcp", *remote, 5*time.Second)
 	if err != nil {

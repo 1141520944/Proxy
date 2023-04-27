@@ -8,6 +8,8 @@ import (
 	"io"
 	"net"
 	"os"
+
+	"go.uber.org/zap"
 )
 
 // TOKEN
@@ -20,6 +22,9 @@ const (
 	SEPS            = "\n"
 )
 
+var Die chan struct{}
+
+// 打印日志
 func Usage() {
 	fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS]\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "Options:\n")
@@ -27,9 +32,11 @@ func Usage() {
 }
 
 func Conn2Str(conn net.Conn) string {
+	//返回本地网络地址<->远程网络地址
 	return conn.LocalAddr().String() + " <-> " + conn.RemoteAddr().String()
 }
 
+// CopyFromTo 处理连接的信息
 func CopyFromTo(r, w io.ReadWriteCloser, buf []byte) {
 	defer CloseConn(r)
 	if buf != nil && len(buf) > 0 {
@@ -42,8 +49,10 @@ func CopyFromTo(r, w io.ReadWriteCloser, buf []byte) {
 }
 
 func CloseConn(a io.ReadWriteCloser) {
-	fmt.Println("CLOSE")
+	zap.L().Info("close")
 	a.Close()
+	//添加信号
+	// Die <- struct{}{}
 }
 
 func WriteString(w io.Writer, str string) (int, error) {

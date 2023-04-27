@@ -1,10 +1,11 @@
 package models
 
 type ServerRequest struct {
-	UserPort   string `json:"user_port" binding:"required"`
-	ServerPort string `json:"server_port" binding:"required"`
-	Password   string `json:"password" binding:"required"`
-	Exist      bool   `json:"exist" binding:"required"`
-	Token      string `json:"token"`
-	Die        chan string
+	ServerName       string `json:"server_name" binding:"required"`
+	ShowPort         string `json:"show_port" binding:"required"`
+	ConnectPort      string `json:"connect_port" binding:"required"`
+	LocalProjectPort string `json:"local_project_port" binding:"required"`
+	Password         string `json:"password" binding:"required"`
+	ServerState      bool   `json:"server_state" binding:"required"`
+	Token            string
 }

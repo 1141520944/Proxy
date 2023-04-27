@@ -8,6 +8,10 @@ import (
 	_ "github.com/1141520944/proxy/api"
 	"github.com/1141520944/proxy/common/run"
 	validateG "github.com/1141520944/proxy/common/validate"
+	"github.com/1141520944/proxy/dao/mysql"
+	"github.com/1141520944/proxy/dao/redis"
+	"github.com/1141520944/proxy/pkg/snowflake"
+
 	"github.com/1141520944/proxy/logger"
 	"github.com/1141520944/proxy/router"
 	"github.com/1141520944/proxy/setting"
@@ -26,6 +30,21 @@ func main() {
 	//注册翻译器
 	if trans_err := validateG.InitTrans("zh"); trans_err != nil {
 		zap.L().Error("init() validator failed;err: %v\n", zap.Error(trans_err))
+		return
+	}
+	//初始redis
+	if err := redis.Init(); err != nil {
+		zap.L().Error("redis.Init() failed;err: %v\n", zap.Error(err))
+		return
+	}
+	//初始redismysql
+	if err := mysql.Init(); err != nil {
+		zap.L().Error("mysql.Init() failed;err: %v\n", zap.Error(err))
+		return
+	}
+	//初始snowflake
+	if err := snowflake.Init(setting.Conf.StartTime, setting.Conf.MachineID); err != nil {
+		zap.L().Error("snowflake.Init() failed;err: %v\n", zap.Error(err))
 		return
 	}
 	//gin

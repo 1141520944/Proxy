@@ -18,10 +18,6 @@ const (
 
 	CodeNeedLogin
 	CodeInvalidToken
-
-	CodeConnectPortExist
-	CodeServerPortExist
-	CodeLocationPortExist
 )
 
 var codeMsgMap = map[CodeError]string{
@@ -34,10 +30,6 @@ var codeMsgMap = map[CodeError]string{
 
 	CodeNeedLogin:    "需要登录",
 	CodeInvalidToken: "无效的token",
-
-	CodeConnectPortExist:  "服务端connect的连接已存在",
-	CodeServerPortExist:   "服务端show的连接已存在",
-	CodeLocationPortExist: "服务端location的连接已存在",
 }
 
 func (r CodeError) GetCode() string {

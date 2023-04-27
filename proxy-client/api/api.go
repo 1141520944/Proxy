@@ -1,5 +1,6 @@
 package api
 
-import(
+import (
+	_ "github.com/1141520944/proxy/client/api/client"
 	_ "github.com/1141520944/proxy/client/api/test"
 )
