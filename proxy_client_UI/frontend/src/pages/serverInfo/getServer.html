@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>查看服务信息</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="../../lib/layui-v2.6.3/css/layui.css" media="all">
+    <link rel="stylesheet" href="../../css/public.css" media="all">
+</head>
+
+<body>
+    <div class="layuimini-container">
+        <div class="layuimini-main">
+            <table class="layui-hide" id="currentTableId" lay-filter="currentTableFilter"></table>
+
+            <script type="text/html" id="currentTableBar">
+            <a class="layui-btn layui-btn-normal  data-count-edit layui-btn-radius layui-btn-sm" lay-event="connect">连接</a>
+            <a class="layui-btn  layui-btn-danger data-count-delete layui-btn-radius layui-btn-sm" lay-event="disconnect">断开连接并删除</a>
+        </script>
+        </div>
+    </div>
+    <script src="../../lib/layui-v2.6.3/layui.js" charset="utf-8"></script>
+    <script src="../../var/var.js"></script>
+    <script>
+        layui.use(['form', 'table'], function () {
+            var $ = layui.jquery,
+                form = layui.form,
+                table = layui.table;
+
+            table.render({
+                elem: '#currentTableId',
+                url: UrlStr + '/server/select/all/' + layui.data("user_id")["user_id"],
+                toolbar: '#toolbarDemo',
+                // headers: {Authorization: layui.data("token")["token"]},
+                request: {
+                    pageName: 'page' //页码的参数名称，默认：page
+                    , limitName: 'size', //每页数据量的参数名，默认：limit
+                },
+                defaultToolbar: ['filter', 'exports', 'print', {
+                    title: '提示',
+                    layEvent: 'LAYTABLE_TIPS',
+                    icon: 'layui-icon-tips'
+                }],
+                cols: [[
+                    { type: "checkbox", width: 150 },
+                    { field: 'server_id', width: 80, title: 'server_id', sort: true },
+                    { field: 'server_name', width: 80, title: '服务名称' },
+                    { field: 'show_port', width: 80, title: '服务器映射端口' },
+                    { field: 'connect_port', width: 80, title: '服务器与客户端连接端口' },
+                    { field: 'local_project_port', width: 80, title: '本地项目映射端口' },
+                    { field: 'user_id', width: 80, title: 'user_id' },
+                    { field: 'password', width: 150, title: '连接密码' },
+                    {
+                        field: 'create_time', width: 150, title: '创建时间', templet: function (e) {
+                            //2023-05-02T17:31:57.706+08:00
+                            var value = e.create_time
+                            var index1 = value.lastIndexOf("T");
+                            a = value.substring(0, index1);
+                            b = value.substring(index1 + 1, index1 + 6);
+                            result = a + "  " + b
+                            return result;
+                        }
+                    },
+                    { field: 'state', width: 80, title: '状态' },
+                    { title: '操作', minWidth: 300, toolbar: '#currentTableBar', align: "center" }
+                ]],
+                limits: [10, 15, 20, 25, 50, 100],
+                limit: 15,
+                page: true,
+                skin: 'line'
+            });
+
+            // 监听搜索操作
+            form.on('submit(data-search-btn)', function (data) {
+                console.log(data)
+                var result = JSON.stringify(data.field);
+                layer.alert(result, {
+                    title: '最终的搜索信息'
+                });
+
+                //执行搜索重载
+                table.reload('currentTableId', {
+                    page: {
+                        curr: 1
+                    }
+                    , where: {
+                        searchParams: result
+                    }
+                }, 'data');
+
+                return false;
+            });
+
+            /**
+             * toolbar监听事件
+             */
+
+            //监听表格复选框选择
+            table.on('checkbox(currentTableFilter)', function (obj) {
+                console.log(obj)
+            });
+
+            table.on('tool(currentTableFilter)', function (obj) {
+                var data = obj.data;
+                if (obj.event === 'connect') {
+                    $.ajax({
+                        url: ClientUrlStr + '/client/server/connect/' + data.show_port,
+                        type: "get",
+                        dataType: "json",
+                        success: function (data) {
+                            console.log(data)
+                            if (data.code == 1000) {
+                                layer.msg("连接成功")
+                            } else {
+                                layer.msg("连接失败")
+                            }
+                        },
+                        error: function (data) {
+                            layer.msg("网络超时")
+                        }
+                    })
+
+                } else if (obj.event === 'disconnect') {
+                    layer.confirm('真的要删除么', function (index) {
+                        //检验是否有server
+                        $.ajax({
+                            url: ClientUrlStr + '/client/server/disconnect/' + data.show_port,
+                            data: JSON.stringify(data),
+                            type: "get",
+                            dataType: "json",
+                            success: function (data) {
+                                console.log(data)
+                                if (data.code == 1000) {
+                                    layer.msg("连接断开,服务关闭")
+                                } else {
+                                    layer.msg("关闭失败")
+                                }
+                            },
+                            error: function (data) {
+                                layer.msg("网络超时")
+                            }
+                        });
+                    });
+                }
+            });
+
+        });
+    </script>
+
+</body>
+
+</html>

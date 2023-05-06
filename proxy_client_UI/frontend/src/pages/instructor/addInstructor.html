@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>注册</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="../../lib/layui-v2.6.3/css/layui.css" media="all">
+    <link rel="stylesheet" href="../../css/public.css" media="all">
+    <style>
+        body {
+            background-color: #ffffff;
+        }
+        .flex_center_row{
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="layui-row layui-col-space15 flex_center_row">
+        <div class="layui-col-md6">
+          <div class="layui-panel">
+            <div style="padding: 30px;">
+                <!-- 内容 -->
+                <div class="layui-form layuimini-form" lay-filter="instructor" >
+                    <!-- <div class="layui-form-item">
+                        <label class="layui-form-label required">姓名</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="name" lay-verify="required" lay-reqtext="姓名不能为空" placeholder="请输入姓名" value="" class="layui-input">
+                            <tip>填写自己管理辅导员的姓名</tip>
+                        </div>
+                    </div> -->
+                    <div class="layui-form-item">
+                        <label class="layui-form-label required">用户名</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="username" lay-verify="required" lay-reqtext="用户名不能为空" placeholder="请输入用户名" value="" class="layui-input">
+                            <tip>填写自己管理辅导员的用户名</tip>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label required">密码</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="password" lay-verify="required" lay-reqtext="密码不能为空" placeholder="请输入密码" value="" class="layui-input">
+                            <tip>填写自己管理班级的密码</tip>
+                        </div>
+                    </div>
+                    <div class="layui-form-item" style="display: none;">
+                        <label class="layui-form-label required">确认密码</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="re_password" class="layui-input">
+                            <tip>填写自己管理班级的密码</tip>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <div class="layui-input-block">
+                            <button class="layui-btn layui-btn-normal" lay-submit lay-filter="saveBtn">确认保存</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          </div>   
+        </div>
+    </div>
+<script src="../../lib/layui-v2.6.3/layui.js" charset="utf-8"></script>
+<script src="../../var/var.js"></script>
+<script>
+    layui.use(['form'], function () {
+        var form = layui.form,
+            layer = layui.layer,
+            $ = layui.$;
+            // console.log(re)
+    
+        //监听提交
+        form.on('submit(saveBtn)', function (data) {
+            data.field.re_password=data.field.password
+            var index = JSON.stringify(data.field)
+            $.ajax({
+                    url:UrlStr+'/signup',
+                    data: index,
+                    type:"post",
+                    dataType:"json",
+                 success:function(data){
+                            if(data.code==1002){
+                                layer.msg("辅导员用户名已存在")
+                            }else if (data.code==1000){
+                                layer.msg('注册成功');
+                                // window.location.href="../../index.html"
+                            }    
+                        }
+                    })
+        });
+
+    });
+</script>
+</body>
+</html>

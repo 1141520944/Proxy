@@ -1,0 +1,18 @@
+name: "proxy-client"
+mode: "dev"
+port: 11416
+# 212.64.21.176
+# remote_ip: "127.0.0.1"
+remote_ip: "212.64.21.176"
+remote_port: "11415"
+version: "V0.1.0"
+start_time: "2023-04-10"
+machine_id: 1
+auth:
+  jwt_expire: 8760
+log:
+  level: "debug"
+  filename: "web_app.log"
+  max_size: 200
+  max_age: 30
+  max_backups: 7

@@ -1,0 +1,10 @@
+{
+  "name": "proxy_client",
+  "outputfilename": "proxy_client",
+  "frontend:install": "",
+  "frontend:build": "",
+  "author": {
+    "name": "1141520944",
+    "email": "1141520944@qq.com"
+  }
+}

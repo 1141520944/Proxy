@@ -1,0 +1,9 @@
+2023-05-05T14:19:52.007+0800	INFO	run/run.go:32	Shutdown Server ...
+2023-05-05T14:19:52.040+0800	INFO	run/run.go:41	Server exiting
+2023-05-05T14:23:14.668+0800	INFO	logger/logger.go:87	/client/server/connect/8888	{"status": 200, "method": "GET", "path": "/client/server/connect/8888", "query": "", "ip": "127.0.0.1", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 Edg/112.0.1722.68 wails.io", "errors": "", "cost": 0.1436865}
+2023-05-05T14:23:47.850+0800	INFO	logger/logger.go:87	/client/server/disconnect/8888	{"status": 200, "method": "GET", "path": "/client/server/disconnect/8888", "query": "{%22server_name%22:%22demo%22,%22show_port%22:%228888%22,%22connect_port%22:%2210000%22,%22local_project_port%22:%2212000%22,%22password%22:%22123456%22,%22user_id%22:%22123456%22,%22server_id%22:%2211330405428891648%22,%22create_time%22:%222023-05-05T14:22:59.164+08:00%22,%22state%22:true}", "ip": "127.0.0.1", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 Edg/112.0.1722.68 wails.io", "errors": "", "cost": 0.0361383}
+2023-05-05T14:23:53.732+0800	INFO	util/server_util.go:47	io.close()
+2023-05-05T14:23:53.734+0800	INFO	util/server_util.go:47	io.close()
+2023-05-05T14:23:53.735+0800	INFO	util/server_util.go:47	io.close()
+2023-05-05T14:23:53.735+0800	INFO	util/server_util.go:47	io.close()
+2023-05-06T00:00:32.570+0800	INFO	run/run.go:32	Shutdown Server ...

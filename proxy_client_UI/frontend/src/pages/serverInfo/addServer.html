@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>添加内网穿透服务</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="../../lib/layui-v2.6.3/css/layui.css" media="all">
+    <link rel="stylesheet" href="../../css/public.css" media="all">
+    <style>
+        body {
+            background-color: #ffffff;
+        }
+
+        .flex_center_row {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="layui-row layui-col-space15 flex_center_row">
+        <div class="layui-col-md6">
+            <div class="layui-panel">
+                <div style="padding: 30px;">
+                    <!-- 内容 -->
+                    <div class="layui-form layuimini-form" lay-filter="userInfo">
+                        <div class="layui-form-item" style="display: none;">
+                            <label class="layui-form-label required">user_id</label>
+                            <div class="layui-input-block">
+                                <input type="text" name="user_id" class="layui-input">
+                            </div>
+                        </div>
+                        <div class="layui-form-item" style="display: none;">
+                            <label class="layui-form-label required"> 服务状态</label>
+                            <div class="layui-input-block">
+                                <input type="text" name=" server_state" class="layui-input" value="true">
+                            </div>
+                        </div>
+                        <div class="layui-form-item">
+                            <label class="layui-form-label required">服务名称</label>
+                            <div class="layui-input-block">
+                                <input type="text" name="server_name" lay-verify="required" lay-reqtext="姓名不能为空"
+                                    placeholder="请输入服务名称" value="" class="layui-input">
+                                <tip>填写自己的服务名称</tip>
+                            </div>
+                        </div>
+                        <div class="layui-form-item">
+                            <label class="layui-form-label required">服务器映射端口</label>
+                            <div class="layui-input-block">
+                                <input type="text" name="show_port" lay-verify="required" lay-reqtext="用户名不能为空"
+                                    placeholder="请输入服务器映射端口" value="" class="layui-input">
+                                <tip>填写自己的服务器映射端口</tip>
+                            </div>
+                        </div>
+                        <div class="layui-form-item">
+                            <label class="layui-form-label required">服务器与客户端连接端口</label>
+                            <div class="layui-input-block">
+                                <input type="text" name="connect_port" lay-verify="required" lay-reqtext="密码不能为空"
+                                    placeholder="请输入服务器与客户端连接端口" value="" class="layui-input">
+                                <tip>填写自己的服务器与客户端连接端口</tip>
+                            </div>
+                        </div>
+                        <div class="layui-form-item">
+                            <label class="layui-form-label required">本地项目映射端口</label>
+                            <div class="layui-input-block">
+                                <input type="text" name="local_project_port" lay-verify="required" lay-reqtext="密码不能为空"
+                                    placeholder="请输入本地项目映射" value="" class="layui-input">
+                                <tip>填写自己的本地项目映射端口</tip>
+                            </div>
+                        </div>
+                        <div class="layui-form-item">
+                            <label class="layui-form-label required">连接密码</label>
+                            <div class="layui-input-block">
+                                <input type="text" name="password" lay-verify="required" lay-reqtext="密码不能为空"
+                                    placeholder="请输入连接密码" value="" class="layui-input">
+                                <tip>填写自己的连接密码</tip>
+                            </div>
+                        </div>
+                        <div class="layui-form-item">
+                            <div class="layui-input-block">
+                                <button class="layui-btn layui-btn-normal" lay-submit lay-filter="saveBtn"
+                                    id="loading">创建</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="../../lib/layui-v2.6.3/layui.js" charset="utf-8"></script>
+    <script src="../../var/var.js"></script>
+    <script>
+        var user_id = layui.data("user_id")["user_id"]
+        // console.log(user_id)
+        layui.use(['form'], function () {
+            var form = layui.form,
+                layer = layui.layer,
+                $ = layui.$;
+            form.val("userInfo", {
+                "user_id": user_id,
+            })
+            var serverInit_start = function (data) {
+                $.ajax({
+                    url: UrlStr + '/server/init',
+                    data: data,
+                    dataType: "json",
+                    contentType: "application/json",
+                    type: "post"
+                })
+            }
+            var serverInit_end = function (show_port) {
+                // http://%s:%s/server/check/show_port/%s
+
+                $.ajax({
+                    url: UrlStr + '/server/check/show_port/' + show_port,
+                    dataType: "json",
+                    // contentType: "application/json"
+                    success: function (data) {
+                        console.log(data.code)
+                        if (data.code == 1000) {
+                            return true
+                        }
+                    },
+                    error: function (data) {
+                        layer.msg("网络超时")
+                    }
+                })
+            }
+            var serverInit_Check = function (data, show_port) {
+                //检查是否端口占用
+                serverinit = data
+                $.ajax({
+                    url: UrlStr + '/server/check',
+                    data: data,
+                    type: "post",
+                    dataType: "json",
+                    contentType: "application/json",
+                    success: function (data) {
+                        if (data.code == "1008") {
+                            layer.msg("服务网端和客户端连接端口已经被占用")
+                        } else if (data.code == "1009") {
+                            layer.msg("服务网端映射端口已经被占用")
+                        } else if (data.code == "1010") {
+                            layer.msg("本地项目映射端口已经被占用")
+                        } else {
+                            //动画
+                            $("#loading").html(`<i
+                                        class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop" id="loading"></i>`)
+                            layer.msg("建立连接")
+
+                            serverInit_start(serverinit)
+
+                            time = setTimeout(function () {
+                                serverInit_end(show_port)
+                                $("#loading").html(`创建成功`)
+                                layer.msg("连接成功")
+                            }, 3000)
+
+                        }
+                    },
+                    error: function (data) {
+                        layer.msg("网络超时")
+                    }
+                })
+            }
+            //监听提交
+            form.on('submit(saveBtn)', function (data) {
+                var show_port = data.field.show_port
+                var index = JSON.stringify(data.field)
+                serverInit_Check(index, show_port)
+            });
+
+        });
+    </script>
+</body>
+
+</html>

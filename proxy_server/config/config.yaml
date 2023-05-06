@@ -1,0 +1,33 @@
+name: "proxy-server"
+mode: "dev"
+port: 11415
+version: "V1.0.2"
+start_time: "2023-04-04"
+machine_id: 1
+max_exist_time: 3
+auth:
+  jwt_expire: 8760
+log:
+  level: "debug"
+  filename: "web_app.log"
+  max_size: 200
+  max_age: 30
+  max_backups: 7
+mysql:
+  # host: "127.0.0.1"
+  # 212.64.21.176
+  host: "212.64.21.176"
+  # port: 3306
+  port: 10020
+  user: "root"
+  password: "123456"
+  dbname: "proxy"
+  max_open_conns: 200
+  max_idle_conns: 10
+redis:
+  # host: "127.0.0.1"
+  host: "212.64.21.176"
+  port: 6379
+  db: 0
+  password: ""
+  pool_size: 100
